@@ -8,8 +8,11 @@ import logging
 from typing import List, Optional
 from src.models.lead import Lead, Sector
 from src.extractors.google_maps_extractor import GoogleMapsExtractor
+from src.extractors.contact_extractor import ContactExtractor
 from src.enrichers.cnpj_enricher import CNPJEnricher
+from src.enrichers.technographics_enricher import TechnographicsEnricher
 from src.scorers.lead_scorer import LeadScorer
+from src.integrations.hubspot_integration import HubSpotIntegration
 from src.utils.config import Config
 import json
 
@@ -83,7 +86,9 @@ def extract(sector, location, radius, limit, output):
 @cli.command()
 @click.option('--input', 'input_file', required=True, help='Input file with leads')
 @click.option('--output', default='enriched_leads.json', help='Output file')
-def enrich(input_file, output):
+@click.option('--contacts/--no-contacts', default=True, help='Extract contact information')
+@click.option('--technographics/--no-technographics', default=True, help='Analyze technographics')
+def enrich(input_file, output, contacts, technographics):
     """Enrich leads with additional data"""
     click.echo(f"💎 Enriching leads from {input_file}...")
     
@@ -94,17 +99,29 @@ def enrich(input_file, output):
         leads = [Lead.from_dict(lead_dict) for lead_dict in lead_dicts]
         
     # Enrich with CNPJ data
-    enricher = CNPJEnricher()
+    click.echo("  📋 Enriching with CNPJ data...")
+    cnpj_enricher = CNPJEnricher()
     enriched_leads = []
     
-    with click.progressbar(leads, label='Enriching leads') as bar:
-        for lead in bar:
-            try:
-                enriched_lead = enricher.enrich_lead(lead)
-                enriched_leads.append(enriched_lead)
-            except Exception as e:
-                logger.error(f"Error enriching {lead.company_name}: {e}")
-                enriched_leads.append(lead)
+    for lead in leads:
+        try:
+            enriched_lead = cnpj_enricher.enrich_lead(lead)
+            enriched_leads.append(enriched_lead)
+        except Exception as e:
+            logger.error(f"Error enriching CNPJ for {lead.company_name}: {e}")
+            enriched_leads.append(lead)
+            
+    # Extract contacts
+    if contacts:
+        click.echo("  📧 Extracting contact information...")
+        contact_extractor = ContactExtractor()
+        enriched_leads = contact_extractor.extract_batch(enriched_leads)
+        
+    # Analyze technographics
+    if technographics:
+        click.echo("  💻 Analyzing technographics...")
+        tech_enricher = TechnographicsEnricher()
+        enriched_leads = tech_enricher.enrich_batch(enriched_leads)
                 
     # Save enriched leads
     output_path = Config.EXPORTS_DIR / output
@@ -208,11 +225,51 @@ def score(input_file, output, output_format):
         
 
 @cli.command()
+@click.option('--input', 'input_file', required=True, help='Input file with scored leads')
+@click.option('--create-deals/--no-deals', default=True, help='Create deals for qualified leads')
+@click.option('--min-score', type=float, default=60.0, help='Minimum score to sync (default: 60)')
+def sync_hubspot(input_file, create_deals, min_score):
+    """Sync leads to HubSpot CRM"""
+    click.echo(f"🔄 Syncing leads to HubSpot...")
+    
+    # Check HubSpot connection
+    hubspot = HubSpotIntegration()
+    if not hubspot.test_connection():
+        click.echo("❌ Failed to connect to HubSpot. Check your API key in .env")
+        return
+        
+    # Load leads
+    input_path = Config.EXPORTS_DIR / input_file
+    with open(input_path, 'r', encoding='utf-8') as f:
+        lead_dicts = json.load(f)
+        leads = [Lead.from_dict(lead_dict) for lead_dict in lead_dicts]
+        
+    # Filter by score
+    qualified_leads = [lead for lead in leads if lead.score >= min_score]
+    click.echo(f"  Found {len(qualified_leads)} qualified leads (score >= {min_score})")
+    
+    # Sync to HubSpot
+    results = hubspot.sync_batch(qualified_leads, create_deals)
+    
+    # Show results
+    successful = sum(1 for r in results if r["success"])
+    click.echo(f"\n✅ Synced {successful}/{len(qualified_leads)} leads to HubSpot")
+    
+    # Show errors if any
+    errors = [r for r in results if not r["success"]]
+    if errors:
+        click.echo("\n⚠️ Errors:")
+        for error in errors[:5]:  # Show first 5 errors
+            click.echo(f"  - {error['company_name']}: {error['errors']}")
+            
+
+@cli.command()
 @click.option('--sector', type=click.Choice(['banking', 'retail', 'manufacturing', 'mining', 'technology', 'healthcare', 'all']), 
               default='all', help='Target sector')
 @click.option('--location', default='São Paulo, Brasil', help='Search location')
 @click.option('--export', type=click.Choice(['json', 'csv', 'excel']), default='excel', help='Export format')
-def pipeline(sector, location, export):
+@click.option('--sync-hubspot/--no-sync', default=False, help='Sync to HubSpot CRM')
+def pipeline(sector, location, export, sync_hubspot):
     """Run complete pipeline: extract -> enrich -> score"""
     click.echo("🚀 Running complete lead extraction pipeline...\n")
     
@@ -235,6 +292,12 @@ def pipeline(sector, location, export):
     score_file = f"scored_leads_{timestamp}"
     ctx = click.Context(score)
     ctx.invoke(score, input_file=enrich_file, output=score_file, output_format=export)
+    
+    # Step 4: Sync to HubSpot (optional)
+    if sync_hubspot:
+        click.echo("\nStep 4/4: Syncing to HubSpot...")
+        ctx = click.Context(sync_hubspot)
+        ctx.invoke(sync_hubspot, input_file=f"{score_file}.json", create_deals=True, min_score=60.0)
     
     click.echo("\n🎉 Pipeline completed successfully!")
     click.echo(f"📁 Final output: {Config.EXPORTS_DIR / score_file}.{export}")

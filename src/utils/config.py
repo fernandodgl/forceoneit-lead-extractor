@@ -16,6 +16,7 @@ class Config:
     GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
     LINKEDIN_USERNAME = os.getenv("LINKEDIN_USERNAME", "")
     LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD", "")
+    HUBSPOT_API_KEY = os.getenv("HUBSPOT_API_KEY", "")
     
     # Database
     DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR}/leads.db")
