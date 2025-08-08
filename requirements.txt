@@ -1,0 +1,43 @@
+# Core dependencies
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+click>=8.1.0
+
+# Data extraction
+beautifulsoup4>=4.12.0
+selenium>=4.15.0
+scrapy>=2.11.0
+
+# Data enrichment
+validate-docbr>=1.10.0
+pycep-correios>=5.0.0
+
+# Database
+sqlalchemy>=2.0.0
+sqlite3
+
+# Export formats
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
+
+# API clients
+googlemaps>=4.10.0
+linkedin-api>=2.0.0
+
+# Utils
+tqdm>=4.66.0
+colorama>=0.4.6
+tabulate>=0.9.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Development
+black>=23.0.0
+flake8>=6.1.0
+isort>=5.12.0
+pre-commit>=3.5.0
