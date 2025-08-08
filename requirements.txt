@@ -26,6 +26,13 @@ xlsxwriter>=3.1.0
 googlemaps>=4.10.0
 linkedin-api>=2.0.0
 
+# Web automation
+selenium>=4.15.0
+
+# Web framework
+flask>=2.3.0
+flask-cors>=4.0.0
+
 # Utils
 tqdm>=4.66.0
 colorama>=0.4.6

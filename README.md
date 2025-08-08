@@ -8,11 +8,34 @@ Automatizar a identificação e qualificação de leads potenciais para a Force 
 
 ## 🚀 Funcionalidades
 
-- **Extração Multi-fonte**: Coleta dados de LinkedIn, Google Maps, e bases públicas
-- **Enriquecimento de Dados**: CNPJ, porte da empresa, setor de atuação
-- **Scoring Inteligente**: Qualificação baseada em critérios AWS e fit com Force One IT
-- **Segmentação por Setor**: Foco em Banking, Retail, Manufacturing, Mining, Tech, Healthcare
-- **Exportação Flexível**: CSV, Excel, integração com CRMs
+### 🎯 **Extração Inteligente de Leads**
+- **Google Maps API**: Busca empresas por setor e localização
+- **LinkedIn Sales Navigator**: Extração de empresas e decision makers
+- **Extração de Contatos B2B**: Emails e telefones corporativos verificados
+- **Social Media Links**: LinkedIn, Facebook, Twitter
+
+### 💎 **Enriquecimento de Dados**
+- **CNPJ Integration**: Dados da Receita Federal (ReceitaWS)
+- **Tecnografias**: Stack tecnológico das empresas (AWS, Azure, GCP)
+- **Buyer Intent Signals**: Análise de intenção de compra
+- **Cloud Maturity Assessment**: Nível de adoção de cloud computing
+
+### 🤖 **Inteligência Artificial**
+- **Prospect Playlists**: Listas inteligentes personalizadas
+- **Daily Recommendations**: Sugestões diárias baseadas em IA
+- **Job Change Alerts**: Monitoramento de mudanças de cargo
+- **Predictive Scoring**: Score preditivo de fechamento
+
+### 🔗 **Integrações**
+- **HubSpot CRM**: Sync automático de empresas, contatos e deals
+- **REST API**: Integração em tempo real
+- **Webhook Support**: Notificações automáticas
+
+### 🛡️ **Compliance LGPD**
+- **Gestão de Consentimento**: Controle total de bases legais
+- **Data Subject Rights**: Portabilidade e esquecimento
+- **Audit Trail**: Histórico completo de processamento
+- **Retention Management**: Anonimização automática
 
 ## 📋 Setores-Alvo
 
@@ -61,18 +84,47 @@ pip install -r requirements.txt
 
 ## 💡 Uso
 
+### 🔥 **Comandos Principais**
 ```bash
-# Buscar leads no setor bancário
-python leadextractor.py extract --sector banking --size large
+# Pipeline completo com HubSpot
+python leadextractor.py pipeline --sector banking --sync-hubspot --export excel
 
-# Enriquecer dados de empresas
-python leadextractor.py enrich --input leads.csv
+# Extração básica
+python leadextractor.py extract --sector technology --location "São Paulo" --limit 50
 
-# Calcular score de qualificação
-python leadextractor.py score --input enriched_leads.csv
+# Enriquecimento avançado
+python leadextractor.py enrich leads.json --contacts --technographics
 
-# Pipeline completo
-python leadextractor.py pipeline --sector all --export excel
+# Scoring e sync HubSpot
+python leadextractor.py score enriched_leads.json --format excel
+python leadextractor.py sync-hubspot scored_leads.json --min-score 70
+```
+
+### 🤖 **Funcionalidades IA**
+```bash
+# Recomendações diárias
+python leadextractor.py daily-recommendations --limit 10
+
+# Playlists inteligentes
+python leadextractor.py playlist-recommendations
+
+# Monitoramento de mudanças de cargo
+python leadextractor.py monitor-job-changes --days 7
+```
+
+### 🛡️ **Compliance LGPD**
+```bash
+# Relatório de compliance
+python leadextractor.py compliance-report
+
+# Gerenciar consentimento
+python leadextractor.py manage-consent --email exemplo@empresa.com --status revoked
+```
+
+### 🚀 **API REST**
+```bash
+# Iniciar servidor API
+python leadextractor.py start-api --host 0.0.0.0 --port 5000
 ```
 
 ## 📊 Critérios de Scoring

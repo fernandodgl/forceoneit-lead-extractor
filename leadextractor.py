@@ -13,6 +13,10 @@ from src.enrichers.cnpj_enricher import CNPJEnricher
 from src.enrichers.technographics_enricher import TechnographicsEnricher
 from src.scorers.lead_scorer import LeadScorer
 from src.integrations.hubspot_integration import HubSpotIntegration
+from src.extractors.linkedin_extractor import LinkedInExtractor
+from src.monitors.job_change_monitor import JobChangeMonitor
+from src.compliance.lgpd_compliance import LGPDComplianceManager
+from src.ai.prospect_playlists import ProspectPlaylistAI
 from src.utils.config import Config
 import json
 
@@ -301,6 +305,145 @@ def pipeline(sector, location, export, sync_hubspot):
     
     click.echo("\n🎉 Pipeline completed successfully!")
     click.echo(f"📁 Final output: {Config.EXPORTS_DIR / score_file}.{export}")
+
+
+@cli.command()
+@click.option('--days', type=int, default=7, help='Days to check for changes')
+@click.option('--limit', type=int, default=50, help='Maximum contacts to check')
+def monitor_job_changes(days, limit):
+    """Monitor job changes of tracked contacts"""
+    click.echo(f"🔍 Monitoring job changes for last {days} days...")
+    
+    monitor = JobChangeMonitor()
+    
+    # Check for recent changes
+    changes = monitor.check_job_changes(max_contacts=limit)
+    
+    if changes:
+        click.echo(f"\n📈 Found {len(changes)} job changes:")
+        for change in changes[:10]:  # Show first 10
+            click.echo(f"  • {change['name']}: {change['previous_company']} → {change['new_company']}")
+            click.echo(f"    Score: {change['opportunity_score']}")
+            
+        # Generate alerts
+        alerts = monitor.generate_opportunity_alerts(changes)
+        high_priority = [a for a in alerts if a['priority'] == 'HIGH']
+        
+        if high_priority:
+            click.echo(f"\n🚨 {len(high_priority)} HIGH PRIORITY alerts:")
+            for alert in high_priority:
+                click.echo(f"  🔥 {alert['contact_name']}: {alert['message']}")
+    else:
+        click.echo("No job changes detected.")
+        
+
+@cli.command()
+@click.option('--email', prompt=True, help='Email to check/update consent')
+@click.option('--status', type=click.Choice(['legitimate_interest', 'consent', 'revoked']), 
+              default='legitimate_interest', help='Consent status')
+def manage_consent(email, status):
+    """Manage LGPD consent for data subjects"""
+    click.echo(f"🛡️ Managing LGPD consent for {email}...")
+    
+    compliance = LGPDComplianceManager()
+    
+    # Check current status
+    current = compliance.check_consent_status(email)
+    if current:
+        click.echo(f"Current status: {current['consent_status']}")
+        
+    # Update consent
+    success = compliance.update_consent(email, status, "cli")
+    
+    if success:
+        click.echo(f"✅ Updated consent status to: {status}")
+    else:
+        click.echo("❌ Failed to update consent")
+
+
+@cli.command()
+def compliance_report():
+    """Generate LGPD compliance report"""
+    click.echo("📊 Generating LGPD compliance report...")
+    
+    compliance = LGPDComplianceManager()
+    report = compliance.generate_compliance_report()
+    
+    if report:
+        click.echo(f"\n📈 Compliance Summary:")
+        click.echo(f"  Total data subjects: {report['data_subjects']['total']}")
+        
+        for status, count in report['data_subjects']['by_consent_status'].items():
+            click.echo(f"    {status}: {count}")
+            
+        click.echo(f"  Processing activities: {report['processing_activities']}")
+        
+        if report['retention_compliance']['action_required']:
+            click.echo(f"⚠️  {report['retention_compliance']['expired_subjects']} subjects need data retention action")
+            
+        click.echo("\n💡 Recommendations:")
+        for rec in report['recommendations'][:3]:
+            click.echo(f"  • {rec}")
+    else:
+        click.echo("❌ Failed to generate report")
+
+
+@cli.command()
+@click.option('--user-id', default='default', help='User ID for personalized recommendations')
+@click.option('--limit', type=int, default=10, help='Number of recommendations')
+def daily_recommendations(user_id, limit):
+    """Get AI-powered daily lead recommendations"""
+    click.echo(f"🤖 Getting daily recommendations for {user_id}...")
+    
+    playlists_ai = ProspectPlaylistAI()
+    recommendations = playlists_ai.get_daily_recommendations(user_id, limit)
+    
+    if recommendations:
+        click.echo(f"\n📋 {len(recommendations)} Recommendations:")
+        for i, rec in enumerate(recommendations, 1):
+            lead = rec['lead']
+            click.echo(f"\n{i}. {lead['company_name']} (Score: {rec['score']})")
+            click.echo(f"   {rec['reasoning']}")
+            click.echo(f"   Actions: {', '.join(rec['suggested_actions'][:2])}")
+    else:
+        click.echo("No recommendations available")
+
+
+@cli.command()
+@click.option('--user-id', default='default', help='User ID')
+def playlist_recommendations(user_id):
+    """Get AI-powered playlist recommendations"""
+    click.echo(f"📚 Getting playlist recommendations for {user_id}...")
+    
+    playlists_ai = ProspectPlaylistAI()
+    recommendations = playlists_ai.generate_ai_recommendations(user_id)
+    
+    click.echo(f"\n🎯 {len(recommendations)} Smart Playlists recommended:")
+    for i, rec in enumerate(recommendations, 1):
+        click.echo(f"\n{i}. {rec['name']}")
+        click.echo(f"   {rec['description']}")
+        click.echo(f"   Estimated leads: {rec['estimated_leads']}")
+        click.echo(f"   Confidence: {rec['confidence']:.0%}")
+        click.echo(f"   Reasoning: {rec['reasoning']}")
+
+
+@cli.command()
+@click.option('--host', default='0.0.0.0', help='Host to run API server')
+@click.option('--port', type=int, default=5000, help='Port to run API server')
+@click.option('--debug/--no-debug', default=False, help='Run in debug mode')
+def start_api(host, port, debug):
+    """Start the REST API server"""
+    click.echo(f"🚀 Starting API server on {host}:{port}...")
+    click.echo("📚 API Documentation available at endpoints:")
+    click.echo("  GET  /health - Health check")
+    click.echo("  POST /api/v1/extract/companies - Extract companies")
+    click.echo("  POST /api/v1/enrich/company - Enrich single company")
+    click.echo("  POST /api/v1/score/company - Score company")
+    click.echo("  POST /api/v1/pipeline/complete - Complete pipeline")
+    click.echo("  POST /api/v1/hubspot/sync - Sync to HubSpot")
+    
+    from src.api.app import app
+    app.run(host=host, port=port, debug=debug)
 
 
 if __name__ == '__main__':
