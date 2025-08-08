@@ -47,7 +47,7 @@ def cli():
 @click.option('--output', default='leads.json', help='Output file')
 def extract(sector, location, radius, limit, output):
     """Extract leads from various sources"""
-    click.echo(f"🔍 Extracting {sector} leads from {location}...")
+    click.echo(f"Extracting {sector} leads from {location}...")
     
     leads = []
     
@@ -83,7 +83,7 @@ def extract(sector, location, radius, limit, output):
         lead_dicts = [lead.to_dict() for lead in leads]
         json.dump(lead_dicts, f, ensure_ascii=False, indent=2)
         
-    click.echo(f"✅ Extracted {len(leads)} leads saved to {output_path}")
+    click.echo(f"Extracted {len(leads)} leads saved to {output_path}")
     return leads
 
 
@@ -94,7 +94,7 @@ def extract(sector, location, radius, limit, output):
 @click.option('--technographics/--no-technographics', default=True, help='Analyze technographics')
 def enrich(input_file, output, contacts, technographics):
     """Enrich leads with additional data"""
-    click.echo(f"💎 Enriching leads from {input_file}...")
+    click.echo(f"Enriching leads from {input_file}...")
     
     # Load leads
     input_path = Config.EXPORTS_DIR / input_file
@@ -433,8 +433,8 @@ def playlist_recommendations(user_id):
 @click.option('--debug/--no-debug', default=False, help='Run in debug mode')
 def start_api(host, port, debug):
     """Start the REST API server"""
-    click.echo(f"🚀 Starting API server on {host}:{port}...")
-    click.echo("📚 API Documentation available at endpoints:")
+    click.echo(f"Starting API server on {host}:{port}...")
+    click.echo("API Documentation available at endpoints:")
     click.echo("  GET  /health - Health check")
     click.echo("  POST /api/v1/extract/companies - Extract companies")
     click.echo("  POST /api/v1/enrich/company - Enrich single company")
