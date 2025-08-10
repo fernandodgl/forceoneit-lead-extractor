@@ -1,4 +1,4 @@
-# ForceOneIT Lead Extractor
+# B2B Cloud Lead Extractor
 
 Sistema inteligente de extração e qualificação de leads B2B para empresas brasileiras interessadas em soluções AWS.
 
@@ -146,4 +146,4 @@ Parceiro AWS Advanced Tier desde 2011, especializada em:
 
 ## 📄 Licença
 
-Proprietary - Force One IT © 2024
+Proprietary - Outrun Data Solutions © 2025
